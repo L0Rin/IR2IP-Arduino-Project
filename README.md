@@ -1,4 +1,4 @@
-**Server Part**
+**Server Part**  
 Server part contains the receiving codes from Arduino. For posting the data here we are using the get request.
 Code is written in such a way that both Get and Post request can be used for posting data to server.
 GET - Requests data from a specified resource
