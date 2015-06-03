@@ -1,88 +1,111 @@
-/*
-  Web client
- 
- This sketch connects to a website (http://www.google.com)
- using an Arduino Wiznet Ethernet shield. 
- 
- Circuit:
- * Ethernet shield attached to pins 10, 11, 12, 13
- 
- created 18 Dec 2009
- by David A. Mellis
- modified 9 Apr 2012
- by Tom Igoe, based on work by Adrian McEwen
- 
- */
+/**********************************************************************************************
+Project name: IR2IP
+Students: Lorin - Gabriel COJOCARIU
+          Muhammad AMMAD
+RCS - MASTER
+CES - Lab
 
+Description
+An arduino with an infrared LED should be used to receive IR commands from remotes 
+of consumer devices and forward them via an ethernet-port to a webserver as a GET request 
+**********************************************************************************************/
+
+/*********************************************************************************************
+                                         LIBRARY                                          
+*********************************************************************************************/
+ 
 #include <SPI.h>
 #include <Ethernet.h>
+#include <IRremote.h>
 
-// Enter a MAC address for your controller below.
-// Newer Ethernet shields have a MAC address printed on a sticker on the shield
-byte mac[] = {  0x90, 0xA2, 0xDA, 0x00, 0xEE, 0xF8 };
-// if you don't want to use DNS (and reduce your sketch size)
-// use the numeric IP instead of the name for the server:
-//IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
-char server[] = "www.mobieshot.com";    // name address for Google (using DNS)
+/*********************************************************************************************
+                                        IR setup / PIN / functions                        
+*********************************************************************************************/
 
-// Set the static IP address to use if the DHCP fails to assign
-IPAddress ip(192,168,1,201);
+int IRpin = 11;
+IRrecv irrecv(IRpin);
+decode_results results;
 
-// Initialize the Ethernet client library
-// with the IP address and port of the server 
-// that you want to connect to (port 80 is default for HTTP):
-EthernetClient client;
+/*********************************************************************************************
+                                        Ethernet setup                                     
+*********************************************************************************************/
+
+byte mac[] = {  0x90, 0xA2, 0xDA, 0x00, 0xEE, 0xF8 }; // Device MAC address
+char server[] = "www.mobieshot.com";                 // Name address for the server resolved by DNS
+
+IPAddress ip(192, 168, 0, 201);      // Set the static IP address to use if the DHCP fails to assign
+EthernetClient client;              // Initialize the Ethernet client library
+                                   // with the IP address and port of the server
+                                  // that you want to connect to (port 80 is default for HTTP):
+
+/*********************************************************************************************
+                                        Arduino setup                                      
+*********************************************************************************************/
 
 void setup() {
- // Open serial communications and wait for port to open:
-  Serial.begin(9600);
-   while (!Serial) {
-    ; // wait for serial port to connect. Needed for Leonardo only
+  Serial.begin(9600);                      // Open serial communications and wait for port to open:
+  Serial.println("Boot sequence - DONE"); //announce that Arduino done the Boot sequence
+  irrecv.enableIRIn();                   // Start the receiver
+  while (!Serial) {
+    ;                                  // wait for serial port to connect. Needed for Leonardo only
   }
 
   // start the Ethernet connection:
   if (Ethernet.begin(mac) == 0) {
     Serial.println("Failed to configure Ethernet using DHCP");
-    // no point in carrying on, so do nothing forevermore:
-    // try to congifure using IP address instead of DHCP:
-    Ethernet.begin(mac, ip);
+    Ethernet.begin(mac, ip); // try to congifure using IP address instead of DHCP
   }
-  // give the Ethernet shield a second to initialize:
-  delay(1000);
+  
+  delay(5000);             // give the Ethernet shield a second to initialize:
   Serial.println("connecting...");
 
-  // if you get a connection, report back via serial:
+  
   if (client.connect(server, 80)) {
-    Serial.println("connected");
-    // Make a HTTP request:
-    client.println("GET /api/mobieshot/arduino.php?code=test HTTP/1.1");
-    client.println("Host: www.mobieshot.com");
-    client.println("Connection: close");
-    client.println();
-  } 
+    Serial.println("connected");           // if you get a connection, report back via serial
+    delay(3000);                          // give some time to write on console smooth
+    Serial.print("IP = ");               // print on console what is the Device IP
+    Serial.println(Ethernet.localIP()); // print on console what is the Device IP
+  }
   else {
-    // kf you didn't get a connection to the server:
-    Serial.println("connection failed");
+        Serial.println("connection failed"); // if you didn't get a connection to the server:
   }
 }
+
+
+/*********************************************************************************************
+                                        Main loop                                          
+*********************************************************************************************/
 
 void loop()
 {
-  // if there are incoming bytes available 
-  // from the server, read them and print them:
-  if (client.available()) {
-    char c = client.read();
-    Serial.print(c);
+  if (irrecv.decode(&results)) {      //if you receive a code and decoded
+    String Code;                     //store the value and 
+    Code = String(results.value);   //convert it into string to send it via HTTP incorporated in URL
+    client.println("GET /api/mobieshot/arduino.php?code=" + Code + " HTTP/1.1"); //send the GET command to server
+    client.println("Host: www.mobieshot.com");
+    Code = "";
+    //  client.println("Connection: close");
+    client.println();
+    //    Serial.println(Code);
+    irrecv.resume();            //resume to reading the next value from remote control
   }
+          /**********************************************************
+            /!\ This part is only for demonstrate that the server 
+                            receive the command                                          
+          ***********************************************************/
+  if (client.available()) {     
+    char c = client.read();   //reading the server's response for our request
+    Serial.print(c);         //print the message on Console
+    // Receive the next
+  }
+           /**********************************************************
+            /!\ End Console printing part                                     
+          ***********************************************************/
 
-  // if the server's disconnected, stop the client:
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("disconnecting.");
-    client.stop();
+  if (!client.connected()) {   // if the server's disconnected, stop the client:
+    //  Serial.println();
+    //  Serial.println("disconnecting.");
+    // client.stop();
 
-    // do nothing forevermore:
-    while(true);
   }
 }
-
