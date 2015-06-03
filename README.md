@@ -38,7 +38,7 @@ $_REQUEST['code']
 This code also give server response about success and fails, Server response is int jSon format.  
 For insersion in database mysql is used. There are two other files which are used to configure and connect to databases.  
  
-** Code for database connection**  
+**Code for database connection**  
  <?php  
 class DB_CONNECT {  
     // constructor  
