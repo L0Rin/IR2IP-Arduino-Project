@@ -73,7 +73,7 @@ class DB_CONNECT {
 }  
 ?>  
  
- **Code for Configure Database**
+ **Code for Configure Database**  
  <?php  
  
  // All database connection variables  
